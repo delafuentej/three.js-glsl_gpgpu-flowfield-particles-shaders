@@ -117,7 +117,7 @@ renderer.setClearColor(debugObject.clearColor);
 const gltf = await gltfLoader.loadAsync('./model.glb');
 
 
-console.log('gltf',gltf)
+
 /**
  * Base Geometry
  */
@@ -136,14 +136,17 @@ baseGeometry.count = baseGeometry.instance.attributes.position.count;//561 parti
 //Each pixel of the FBO will correspond to one particke
 const gpgpu = {};
 // create a size property
-gpgpu.size = Math.ceil(Math.sqrt(baseGeometry.count));// sqrt(561 particles)=>  24 by 24 Texture .It easy for the GPU to handle that
+gpgpu.size = Math.ceil(Math.sqrt(baseGeometry.count));
+
+// sqrt(561 particles)=>  24 by 24 Texture .It easy for the GPU to handle that
 //instantiate the GPUComputationRenderer, it will do off-screen renders
 gpgpu.computation = new GPUComputationRenderer(gpgpu.size ,gpgpu.size, renderer);
+//gpgpu.computation.setDataType(THREE.FloatType); // Asegurar precisión
 // now we need to send it the base particles as a Texture
 
 //BASE PARTICLES:
 const baseParticlesTexture = gpgpu.computation.createTexture();// this is a DataTexture, like another Texture but the pixels data set up as an array which  we can acces in  baseParticlesTexture.image
-console.log('texture',baseParticlesTexture.image.data)//This is an Float32Array(count)
+//console.log('texture',baseParticlesTexture.image.data)//This is an Float32Array(count)
 //Each set of 4 values correspond one particle (r,g,b,a) /´=> later we are going to put the particles position in there
 //To create the particles variable: each type of data will be computed =< particles variable
 for(let i = 0; i < baseGeometry.count; i++){
@@ -152,17 +155,14 @@ for(let i = 0; i < baseGeometry.count; i++){
     const i3 = i * 3;
     const i4 = i * 4;
     //Position based on geometry
-    baseParticlesTexture.image.data[i4 + 0] = baseGeometry.instance.attributes.position.array[i3 + 0]
-    baseParticlesTexture.image.data[i4 + 1] = baseGeometry.instance.attributes.position.array[i3 + 1]
-    baseParticlesTexture.image.data[i4 + 2] = baseGeometry.instance.attributes.position.array[i3 + 2]
-    baseParticlesTexture.image.data[i4 + 3] = Math.random()
-
-
-
+    baseParticlesTexture.image.data[i4 + 0] = baseGeometry.instance.attributes.position.array[i3 + 0];
+    baseParticlesTexture.image.data[i4 + 1] = baseGeometry.instance.attributes.position.array[i3 + 1];
+    baseParticlesTexture.image.data[i4 + 2] = baseGeometry.instance.attributes.position.array[i3 + 2];
+    baseParticlesTexture.image.data[i4 + 3] = Math.random();
 }
-console.log(baseParticlesTexture.image.data)
+//console.log(baseParticlesTexture.image.data)
 
-// PArticles variable
+// Particles variable
 gpgpu.particlesVariable = gpgpu.computation.addVariable('uParticles',gpgpuParticlesShader, baseParticlesTexture);
 //particlesVariable needs to be re-injected into itself and we can use the setVariableDependencies() method
 gpgpu.computation.setVariableDependencies(gpgpu.particlesVariable, [gpgpu.particlesVariable]);// second parameter: dependencies
@@ -175,9 +175,6 @@ gpgpu.particlesVariable.material.uniforms.uFlowfieldInfluence = new THREE.Unifor
 gpgpu.particlesVariable.material.uniforms.uFlowfieldStrength = new THREE.Uniform(2);
 gpgpu.particlesVariable.material.uniforms.uFlowfieldFrecuency = new THREE.Uniform(0.5);
 
-
-
-
 //initialize the GPUComputationRenderer
 gpgpu.computation.init();
 
@@ -188,14 +185,14 @@ gpgpu.debug = new THREE.Mesh(
     new THREE.PlaneGeometry(3, 3),
     new THREE.MeshBasicMaterial({
         // we want to have our particles as pixels
-        map: gpgpu.computation.getCurrentRenderTarget(gpgpu.particlesVariable).texture
+        map: gpgpu.computation.getCurrentRenderTarget(gpgpu.particlesVariable).texture 
     })
 );
 gpgpu.debug.position.x = 3;
 gpgpu.debug.visible = false;
 scene.add(gpgpu.debug);
 // we can access the GPUComputationRenderer getCurrentRendererTarget()
-console.log(gpgpu.computation.getCurrentRenderTarget(gpgpu.particlesVariable).texture); //this is a wrapper for FBO
+//console.log(gpgpu.computation.getCurrentRenderTarget(gpgpu.particlesVariable).texture); //this is a wrapper for FBO
 /**
  * Particles
  */
@@ -230,7 +227,6 @@ for(let y = 0; y < gpgpu.size; y++){
 particles.geometry = new THREE.BufferGeometry();
 particles.geometry.setDrawRange(0, baseGeometry.count);// to define a range of vertices
 
-
 // new attribute named "aParticlesUv"
 particles.geometry.setAttribute('aParticlesUv', new THREE.BufferAttribute(particlesUvArray, 2));
 
@@ -264,6 +260,7 @@ gui.add(particles.material.uniforms.uSize, 'value')
     .max(1)
     .step(0.001)
     .name('uSize');
+
 gui.add(gpgpu.particlesVariable.material.uniforms.uFlowfieldInfluence, 'value')
     .min(0)
     .max(1)
